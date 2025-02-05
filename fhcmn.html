@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>高精度电磁场模拟</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            font-family: Arial, sans-serif;
+        }
+        #canvas {
+            border: 1px solid #333;
+        }
+        #controls {
+            padding: 20px;
+            width: 300px;
+            overflow-y: auto;
+            height: 100vh;
+            background: #f5f5f5;
+        }
+        .field-section {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        input[type="number"] {
+            width: 70px;
+            margin: 2px;
+        }
+        button {
+            margin: 5px;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="controls">
+        <div class="field-section">
+            <h3>粒子属性</h3>
+            <div>
+                <label>电荷 (q): <input type="number" id="charge" value="1"></label>
+                <label>质量 (m): <input type="number" id="mass" value="1"></label>
+            </div>
+            <div>
+                <label>初始 X: <input type="number" id="initX" value="0"></label>
+                <label>初始 Y: <input type="number" id="initY" value="0"></label>
+            </div>
+            <div>
+                <label>速度 X: <input type="number" id="velX" value="1"></label>
+                <label>速度 Y: <input type="number" id="velY" value="0"></label>
+            </div>
+        </div>
+
+        <div class="field-section">
+            <h3>电场 <button onclick="addElectricField()">+</button></h3>
+            <div id="electricFields"></div>
+        </div>
+
+        <div class="field-section">
+            <h3>磁场 <button onclick="addMagneticField()">+</button></h3>
+            <div id="magneticFields"></div>
+        </div>
+
+        <button onclick="reset()">重置模拟</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 800;
+        canvas.height = 600;
+
+        let particle = {
+            x: 0, y: 0,
+            vx: 0, vy: 0,
+            trail: []
+        };
+        let scale = 40;
+        let lastTime = 0;
+
+        function reset() {
+            particle.x = parseFloat(document.getElementById('initX').value) || 0;
+            particle.y = parseFloat(document.getElementById('initY').value) || 0;
+            particle.vx = parseFloat(document.getElementById('velX').value) || 0;
+            particle.vy = parseFloat(document.getElementById('velY').value) || 0;
+            particle.trail = [];
+        }
+
+        function addElectricField() {
+            const div = document.createElement('div');
+            div.className = 'field';
+            div.innerHTML = `
+                E_x: <input type="number" value="0" step="0.1">
+                E_y: <input type="number" value="0" step="0.1">
+                X: <input type="number" placeholder="min" style="width:50px">-
+                <input type="number" placeholder="max" style="width:50px">
+                Y: <input type="number" placeholder="min" style="width:50px">-
+                <input type="number" placeholder="max" style="width:50px">
+                <button onclick="this.parentElement.remove()">×</button>
+            `;
+            document.getElementById('electricFields').appendChild(div);
+        }
+
+        function addMagneticField() {
+            const div = document.createElement('div');
+            div.className = 'field';
+            div.innerHTML = `
+                B_z: <input type="number" value="0" step="0.1">
+                X: <input type="number" placeholder="min" style="width:50px">-
+                <input type="number" placeholder="max" style="width:50px">
+                Y: <input type="number" placeholder="min" style="width:50px">-
+                <input type="number" placeholder="max" style="width:50px">
+                <button onclick="this.parentElement.remove()">×</button>
+            `;
+            document.getElementById('magneticFields').appendChild(div);
+        }
+
+        function getFields() {
+            return {
+                electric: [...document.querySelectorAll('#electricFields .field')].map(div => {
+                    const inputs = div.querySelectorAll('input');
+                    return {
+                        ex: parseFloat(inputs[0].value) || 0,
+                        ey: parseFloat(inputs[1].value) || 0,
+                        xMin: parseFloat(inputs[2].value) || -Infinity,
+                        xMax: parseFloat(inputs[3].value) || Infinity,
+                        yMin: parseFloat(inputs[4].value) || -Infinity,
+                        yMax: parseFloat(inputs[5].value) || Infinity
+                    };
+                }),
+                magnetic: [...document.querySelectorAll('#magneticFields .field')].map(div => {
+                    const inputs = div.querySelectorAll('input');
+                    return {
+                        bz: parseFloat(inputs[0].value) || 0,
+                        xMin: parseFloat(inputs[1].value) || -Infinity,
+                        xMax: parseFloat(inputs[2].value) || Infinity,
+                        yMin: parseFloat(inputs[3].value) || -Infinity,
+                        yMax: parseFloat(inputs[4].value) || Infinity
+                    };
+                })
+            };
+        }
+
+        function computeAcceleration(state) {
+            const q = parseFloat(document.getElementById('charge').value) || 0;
+            const m = parseFloat(document.getElementById('mass').value) || 1;
+            const fields = getFields();
+
+            let E = {x: 0, y: 0};
+            let B = 0;
+
+            fields.electric.forEach(f => {
+                if (state.x >= f.xMin && state.x <= f.xMax &&
+                    state.y >= f.yMin && state.y <= f.yMax) {
+                    E.x += f.ex;
+                    E.y += f.ey;
+                }
+            });
+
+            fields.magnetic.forEach(f => {
+                if (state.x >= f.xMin && state.x <= f.xMax &&
+                    state.y >= f.yMin && state.y <= f.yMax) {
+                    B += f.bz;
+                }
+            });
+
+            return {
+                ax: (q/m) * (E.x + state.vy * B),
+                ay: (q/m) * (E.y - state.vx * B)
+            };
+        }
+
+        function integrate(dt) {
+            // RK4积分核心算法
+            const state = {x: particle.x, y: particle.y, vx: particle.vx, vy: particle.vy};
+            
+            const k1 = computeAcceleration(state);
+            const k1v = {vx: state.vx, vy: state.vy};
+            
+            const k2 = computeAcceleration({
+                x: state.x + k1v.vx * dt/2,
+                y: state.y + k1v.vy * dt/2,
+                vx: state.vx + k1.ax * dt/2,
+                vy: state.vy + k1.ay * dt/2
+            });
+            const k2v = {
+                vx: state.vx + k1.ax * dt/2,
+                vy: state.vy + k1.ay * dt/2
+            };
+            
+            const k3 = computeAcceleration({
+                x: state.x + k2v.vx * dt/2,
+                y: state.y + k2v.vy * dt/2,
+                vx: state.vx + k2.ax * dt/2,
+                vy: state.vy + k2.ay * dt/2
+            });
+            const k3v = {
+                vx: state.vx + k2.ax * dt/2,
+                vy: state.vy + k2.ay * dt/2
+            };
+            
+            const k4 = computeAcceleration({
+                x: state.x + k3v.vx * dt,
+                y: state.y + k3v.vy * dt,
+                vx: state.vx + k3.ax * dt,
+                vy: state.vy + k3.ay * dt
+            });
+            const k4v = {
+                vx: state.vx + k3.ax * dt,
+                vy: state.vy + k3.ay * dt
+            };
+
+            const dxdt = (k1v.vx + 2*k2v.vx + 2*k3v.vx + k4v.vx) / 6;
+            const dydt = (k1v.vy + 2*k2v.vy + 2*k3v.vy + k4v.vy) / 6;
+            const dvxdt = (k1.ax + 2*k2.ax + 2*k3.ax + k4.ax) / 6;
+            const dvydt = (k1.ay + 2*k2.ay + 2*k3.ay + k4.ay) / 6;
+
+            particle.x += dxdt * dt;
+            particle.y += dydt * dt;
+            particle.vx += dvxdt * dt;
+            particle.vy += dvydt * dt;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制坐标系
+            ctx.strokeStyle = '#999';
+            ctx.beginPath();
+            ctx.moveTo(canvas.width/2, 0);
+            ctx.lineTo(canvas.width/2, canvas.height);
+            ctx.moveTo(0, canvas.height/2);
+            ctx.lineTo(canvas.width, canvas.height/2);
+            ctx.stroke();
+
+            // 绘制轨迹
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(0, 0, 255, 0.7)';
+            ctx.lineWidth = 2;
+            particle.trail.forEach((p, i) => {
+                const x = canvas.width/2 + p.x * scale;
+                const y = canvas.height/2 - p.y * scale;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            // 绘制粒子
+            ctx.fillStyle = 'red';
+            ctx.beginPath();
+            ctx.arc(
+                canvas.width/2 + particle.x * scale,
+                canvas.height/2 - particle.y * scale,
+                5, 0, Math.PI*2
+            );
+            ctx.fill();
+        }
+
+        function simulate(currentTime) {
+            if (!lastTime) lastTime = currentTime;
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            // 固定时间步长1ms
+            const fixedStep = 1;
+            let steps = Math.floor(deltaTime / fixedStep);
+            steps = Math.min(steps, 10);
+
+            // 执行物理计算
+            for (let i = 0; i < steps; i++) {
+                integrate(fixedStep / 1000);
+            }
+
+            // 轨迹采样
+            if (steps > 0) {
+                particle.trail.push({x: particle.x, y: particle.y});
+                if (particle.trail.length > 1000) particle.trail.shift();
+            }
+
+            draw();
+            requestAnimationFrame(simulate);
+        }
+
+        // 初始化默认场
+        addElectricField();
+        addMagneticField();
+        reset();
+        requestAnimationFrame(simulate);
+    </script>
+</body>
+</html>
