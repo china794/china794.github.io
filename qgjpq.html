@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>奇怪节拍器</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        .control-group {
+            margin: 20px;
+            padding: 15px;
+            border: 1px solid #444;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        input {
+            padding: 10px;
+            width: 80px;
+            text-align: center;
+            font-size: 16px;
+            margin: 5px;
+        }
+
+        #beatDisplay {
+            width: 200px;
+            height: 200px;
+            background-color: #333;
+            border-radius: 50%;
+            margin: 20px auto;
+            transition: background-color 0.1s;
+        }
+
+        .active {
+            background-color: #4CAF50 !important;
+        }
+
+        .random-controls {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .random-active {
+            display: block;
+        }
+        .line_m{
+            text-decoration:line-through;
+            
+        }
+        h1{
+            display:inline
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="font-size: small;"><span class="line_m">寸止挑战</span></h1>
+        <h1>节拍器</h1>
+        
+        <div class="control-group">
+            <div class="bpm-control">
+                <button onclick="changeBPM(-10)">-10</button>
+                <button onclick="changeBPM(-1)">-1</button>
+                <input type="number" id="bpm" value="60">
+                <button onclick="changeBPM(1)">+1</button>
+                <button onclick="changeBPM(10)">+10</button>
+            </div>
+
+            <div id="beatDisplay"></div>
+
+            <button id="startStop" onclick="toggleMetronome()">开始</button>
+            
+            <div class="sound-control">
+                <label>
+                    <input type="checkbox" id="sound" checked> 开启声音
+                </label>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <button id="randomToggle" onclick="toggleRandomMode()">开启随机模式</button>
+            
+            <div class="random-controls" id="randomControls">
+                <div>
+                    <label>BPM范围：</label>
+                    <input type="number" id="minBPM" value="30" min="1">
+                    <span>至</span>
+                    <input type="number" id="maxBPM" value="240" min="1">
+                </div>
+                <div>
+                    <label>时长范围（秒）：</label>
+                    <input type="number" id="minDuration" value="5" min="1">
+                    <span>至</span>
+                    <input type="number" id="maxDuration" value="30" min="1">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isRunning = false;
+        let isRandomMode = false;
+        let intervalId = null;
+        let timeoutId = null;
+        const beatDisplay = document.getElementById('beatDisplay');
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playBeep() {
+            if (!document.getElementById('sound').checked) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 880;
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.1);
+        }
+
+        function updateDisplay() {
+            beatDisplay.classList.add('active');
+            setTimeout(() => beatDisplay.classList.remove('active'), 50);
+        }
+
+        function toggleMetronome() {
+            if (isRunning) {
+                stopMetronome();
+            } else {
+                startMetronome();
+            }
+        }
+
+        function startMetronome() {
+            const bpm = parseInt(document.getElementById('bpm').value);
+            const interval = 60000 / bpm;
+            
+            isRunning = true;
+            document.getElementById('startStop').textContent = '停止';
+            intervalId = setInterval(() => {
+                playBeep();
+                updateDisplay();
+            }, interval);
+        }
+
+        function stopMetronome() {
+            isRunning = false;
+            document.getElementById('startStop').textContent = '开始';
+            clearInterval(intervalId);
+            if (timeoutId) clearTimeout(timeoutId);
+        }
+
+        function changeBPM(amount) {
+            const bpmInput = document.getElementById('bpm');
+            let newBpm = parseInt(bpmInput.value) + amount;
+            newBpm = Math.max(1, newBpm);
+            bpmInput.value = newBpm;
+            
+            if (isRunning && !isRandomMode) {
+                stopMetronome();
+                startMetronome();
+            }
+        }
+
+        function toggleRandomMode() {
+            isRandomMode = !isRandomMode;
+            const randomToggle = document.getElementById('randomToggle');
+            const randomControls = document.getElementById('randomControls');
+            
+            if (isRandomMode) {
+                randomToggle.textContent = '关闭随机模式';
+                randomControls.classList.add('random-active');
+                stopMetronome();
+                startRandomMetronome();
+            } else {
+                randomToggle.textContent = '开启随机模式';
+                randomControls.classList.remove('random-active');
+                stopMetronome();
+            }
+        }
+
+        function startRandomMetronome() {
+            if (!isRandomMode) return;
+            
+            const minBPM = parseInt(document.getElementById('minBPM').value);
+            const maxBPM = parseInt(document.getElementById('maxBPM').value);
+            const minDuration = parseInt(document.getElementById('minDuration').value);
+            const maxDuration = parseInt(document.getElementById('maxDuration').value);
+            
+            const randomBPM = Math.floor(Math.random() * (maxBPM - minBPM + 1)) + minBPM;
+            const randomDuration = Math.floor(Math.random() * (maxDuration - minDuration + 1)) + minDuration;
+            
+            document.getElementById('bpm').value = randomBPM;
+            startMetronome();
+            
+            timeoutId = setTimeout(() => {
+                stopMetronome();
+                startRandomMetronome();
+            }, randomDuration * 1000);
+        }
+    </script>
+</body>
+</html>
