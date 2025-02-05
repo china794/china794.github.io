@@ -2,311 +2,212 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>辛中寒假倒计时</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阿飞AI赋能的小院</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-red: #FF3B30;
-            --accent-red: #FF625A;
-            --pure-white: #FFFFFF;
-            --text-dark: #1D1D1F;
-            --gradient-red: linear-gradient(135deg, #FF3B30 0%, #FF1A1A 100%);
+            --primary: #88C9A1;
+            --secondary: #D4E6B5;
+            --accent: #FFA630;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', '微软雅黑', sans-serif;
         }
 
         body {
-            font-family: 'HarmonyOS Sans', 'OPPO Sans', system-ui;
-            background: var(--pure-white);
-            color: var(--text-dark);
-            min-height: 100vh;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            animation: fadeIn 0.8s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .header {
-            width: 100%;
-            padding: 2rem 0;
-            background: var(--pure-white);
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 120px;
-            height: 3px;
-            background: var(--primary-red);
-            border-radius: 2px;
-            opacity: 0.2;
-        }
-
-        .logo-title {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.2rem;
-        }
-
-        .logo {
-            height: 88px;
-            width: 88px;
-            border-radius: 24px;
-            box-shadow: 0 8px 24px rgba(255, 59, 48, 0.12);
-            transition: transform 0.3s ease;
-        }
-
-        .logo:hover {
-            transform: rotate(8deg) scale(1.04);
-        }
-
-        .title {
-            font-size: 2.4rem;
-            color: var(--text-dark);
-            font-weight: 700;
-            position: relative;
-            background: linear-gradient(45deg, var(--primary-red), var(--accent-red));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #F8FFF4 0%, #F0F7EE 100%);
+            line-height: 1.6;
         }
 
         .container {
-            max-width: 680px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: var(--pure-white);
-            border-radius: 24px;
-            box-shadow: 0 12px 36px rgba(255, 59, 48, 0.08);
-            border: 1px solid rgba(255, 59, 48, 0.06);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
         }
 
-        .status-item {
-            margin: 1.8rem 0;
-            padding: 1.6rem;
-            background: var(--pure-white);
-            border-radius: 16px;
-            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+        header {
+            text-align: center;
+            padding: 40px 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #ddd;
+            background-image: url('http://q1.qlogo.cn/g?b=qq&nk=1391897309&s=640');
+            background-size: cover;
+            background-position: center;
+            margin-right: 20px;
+        }
+
+        .garden-title {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+            display: inline-block;
             position: relative;
         }
 
-        .status-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 59, 48, 0.1);
+        .garden-title::after {
+            content: '🌱';
+            position: absolute;
+            right: -40px;
+            animation: sway 3s ease-in-out infinite;
         }
 
-        .status-item span {
-            color: var(--primary-red);
-            font-weight: 600;
-            letter-spacing: -0.3px;
+        .intro {
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto 40px;
+            padding: 15px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
 
-        #progress-bar {
-            background: rgba(255, 59, 48, 0.08);
-            height: 16px;
-            border-radius: 99px;
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            padding: 20px;
+        }
+
+        .project-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
             overflow: hidden;
-            position: relative;
-            margin: 1.2rem 0;
         }
 
-        #progress-fill {
-            background: var(--gradient-red);
-            height: 100%;
-            width: 0;
-            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(136,201,161,0.2);
         }
 
-        #progress-fill::after {
+        .project-card::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, 
-                rgba(255,255,255,0) 0%, 
-                rgba(255,255,255,0.2) 50%, 
-                rgba(255,255,255,0) 100%);
-            animation: shine 2s infinite;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
         }
 
-        @keyframes shine {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+        .project-name {
+            color: var(--primary);
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        #time-remaining {
-            font-size: 1.8rem;
-            color: var(--text-dark);
-            font-family: 'Geist Mono', monospace;
-            letter-spacing: -0.5px;
-            background: linear-gradient(45deg, var(--primary-red), var(--accent-red));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 600;
+        .project-desc {
+            color: #666;
+            font-size: 0.95rem;
+            min-height: 60px;
         }
 
-        #percentage {
-            font-size: 1.6rem;
-            color: var(--primary-red);
-            font-weight: 700;
-            text-align: center;
-            margin-top: 1.6rem;
-            opacity: 0.9;
-            font-feature-settings: "tnum";
-            font-variant-numeric: tabular-nums;
+        .project-link {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 20px;
+            background: var(--primary);
+            color: white !important;
+            border-radius: 25px;
+            text-decoration: none;
+            transition: background 0.3s ease;
+        }
+
+        .project-link:hover {
+            background: var(--accent);
+        }
+
+        @keyframes sway {
+            0%, 100% { transform: rotate(-10deg); }
+            50% { transform: rotate(10deg); }
         }
 
         @media (max-width: 768px) {
-            .container {
-                margin: 1rem;
-                padding: 1.6rem;
-                border-radius: 20px;
-            }
-            
-            .title {
+            .garden-title {
                 font-size: 2rem;
             }
             
-            .logo {
-                height: 72px;
-                width: 72px;
-            }
-
-            #time-remaining {
-                font-size: 1.4rem;
+            .project-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="header">
-        <div class="logo-title">
-            <img src="https://tse1-mm.cn.bing.net/th/id/OIP-C.tYFw_Jk597iMCmfSfT5URwAAAA?rs=1&pid=ImgDetMain" 
-                 alt="辛中校徽" 
-                 class="logo">
-            <div class="title">河北辛集中学寒假倒计时</div>
-        </div>
-    </div>
-
     <div class="container">
-        <div class="status-item">
-            🚀 假期启航: <span id="start-time"></span>
-        </div>
-        <div class="status-item">
-            🎯 归校时刻: <span id="end-time"></span>
-        </div>
-        <div class="status-item">
-            ⏳ 剩余时间: <span id="time-remaining"></span>
-        </div>
-        <div class="status-item">
-            📈 进度轨迹:
-            <div id="progress-bar">
-                <div id="progress-fill"></div>
+        <header>
+            <div class="user-avatar"></div>
+            <h1 class="garden-title">阿飞的小院-</h1>
+        </header>
+
+        <p class="intro">
+            这里是我用DeepSeek即时实现的一些小网页<br>
+            它们是我奇葩灵感和兴趣的具象化体现
+        </p>
+
+        <div class="project-grid">
+            <div class="project-card">
+                <div class="project-name"><i class="fa-solid fa-clock-rotate-left"></i>辛中倒计时</div>
+                <p class="project-desc">2025/1/29</p>
+                <a href="./xzdjs.html" class="project-link">开始焦虑</a>
             </div>
-            <div id="percentage">0%</div>
+
+            <div class="project-card">
+                <div class="project-name"><i class="fa-solid fa-circle"></i>奇怪节拍器</div>
+                <p class="project-desc">2025/2/5</p>
+                <a href="./qgjpq.html" class="project-link">开始发呆</a>
+            </div>
+
+            <div class="project-card">
+                <div class="project-name"><i class="fa-brands fa-openid"></i>复合场模拟</div>
+                <p class="project-desc">2025/2/1（施工中）</p>
+                <a href="./fhcmn.html" class="project-link">开摆</a>
+            </div>
+            <div class="project-card">
+                <div class="project-name"><i class="fa-brands fa-jenkins"></i>傅里叶变换</div>
+                <p class="project-desc">2024/7（文件丢失在补）</p>
+                <a href="#" class="project-link">开始套圈</a>
+            </div>
         </div>
     </div>
 
     <script>
-        // 配置参数
-        const config = {
-            startTime: "2025-01-24 10:30:00",
-            endTime: "2025-02-13 12:00:00",
-            decimalPlaces: 6
-        };
-
-        // 初始化DOM元素
-        const elements = {
-            startTime: document.getElementById('start-time'),
-            endTime: document.getElementById('end-time'),
-            timeRemaining: document.getElementById('time-remaining'),
-            progressFill: document.getElementById('progress-fill'),
-            percentage: document.getElementById('percentage')
-        };
-
-        // 时间格式化函数
-        function formatTime(seconds) {
-            const days = Math.floor(seconds / 86400);
-            let rem = seconds % 86400;
-            const hours = Math.floor(rem / 3600);
-            rem %= 3600;
-            const minutes = Math.floor(rem / 60);
-            rem %= 60;
-            const secs = Math.floor(rem);
-            const ms = Math.round((rem - secs) * 1000);
+        // 动态加载更多项目
+        const projects = [
+        {
             
-            return `${days}天 ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
-        }
+    },
+        ];
 
-        // 进度更新函数
-        function updateProgress() {
-            const now = new Date();
-            const startDate = new Date(config.startTime);
-            let endDate = new Date(config.endTime);
-
-            // 自动修正日期顺序
-            if (endDate < startDate) {
-                endDate = new Date(startDate);
-                elements.endTime.textContent = endDate.toLocaleString();
-            }
-
-            const total = endDate - startDate;
-            let elapsed = now - startDate;
-            let remaining = endDate - now;
-
-            // 边界处理
-            if (now < startDate) {
-                elapsed = 0;
-                remaining = total;
-            } else if (now > endDate) {
-                elapsed = total;
-                remaining = 0;
-            }
-
-            // 计算百分比
-            const percentage = total > 0 ? 
-                Math.min(100, (elapsed / total * 100)) : 100;
-
-            // 更新显示
-            elements.startTime.textContent = startDate.toLocaleString();
-            elements.endTime.textContent = endDate.toLocaleString();
-            elements.timeRemaining.textContent = remaining > 0 ? 
-                formatTime(remaining / 1000) : "已超时";
-            elements.progressFill.style.width = `${percentage}%`;
-            elements.percentage.innerHTML = `
-                <span style="color: var(--primary-red); font-size: 1.2em;">
-                    ${percentage.toFixed(config.decimalPlaces)}%
-                </span>
-            `;
-
-            // 循环更新
-            if (now < endDate) {
-                requestAnimationFrame(updateProgress);
-            } else {
-                elements.timeRemaining.innerHTML = '<span style="background: linear-gradient(45deg, #FF3B30, #FF1A1A); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🏁 假期正式开始！</span>';
-            }
-        }
-
-        // 初始化显示
-        elements.startTime.textContent = new Date(config.startTime).toLocaleString();
-        elements.endTime.textContent = new Date(config.endTime).toLocaleString();
-        
-        // 启动动画
-        requestAnimationFrame(updateProgress);
+        // 卡片入场动画
+        document.querySelectorAll('.project-card').forEach((card, index) => {
+            card.style.opacity = 0;
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                card.style.opacity = 1;
+                card.style.transform = 'translateY(0)';
+            }, index * 150);
+        });
     </script>
 </body>
 </html>
