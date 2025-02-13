@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>辛中寒假倒计时</title>
+    <title>辛中高考倒计时</title>
     <style>
         :root {
             --primary-red: #FF3B30;
@@ -198,22 +198,22 @@
             <img src="https://tse1-mm.cn.bing.net/th/id/OIP-C.tYFw_Jk597iMCmfSfT5URwAAAA?rs=1&pid=ImgDetMain" 
                  alt="辛中校徽" 
                  class="logo">
-            <div class="title">河北辛集中学寒假倒计时</div>
+            <div class="title">河北辛集中学高考倒计时</div>
         </div>
     </div>
 
     <div class="container">
         <div class="status-item">
-            🚀 假期启航: <span id="start-time"></span>
+            🚀 学期启航: <span id="start-time"></span>
         </div>
         <div class="status-item">
-            🎯 归校时刻: <span id="end-time"></span>
+            🎯 亮剑时刻: <span id="end-time"></span>
         </div>
         <div class="status-item">
             ⏳ 剩余时间: <span id="time-remaining"></span>
         </div>
         <div class="status-item">
-            📈 进度轨迹:
+            📈 进度条:
             <div id="progress-bar">
                 <div id="progress-fill"></div>
             </div>
@@ -224,8 +224,8 @@
     <script>
         // 配置参数
         const config = {
-            startTime: "2025-01-24 10:30:00",
-            endTime: "2025-02-13 12:00:00",
+            startTime: "2025-02-13 18:30:00",
+            endTime: "2025-06-6 12:00:00",
             decimalPlaces: 6
         };
 
@@ -297,7 +297,7 @@
             if (now < endDate) {
                 requestAnimationFrame(updateProgress);
             } else {
-                elements.timeRemaining.innerHTML = '<span style="background: linear-gradient(45deg, #FF3B30, #FF1A1A); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🏁 假期正式开始！</span>';
+                elements.timeRemaining.innerHTML = '<span style="background: linear-gradient(45deg, #FF3B30, #FF1A1A); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🚩为母校而战！</span>';
             }
         }
 
