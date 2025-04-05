@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>电场线模拟器</title>
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --danger-color: #f44336;
+            --canvas-height-mobile: 60vh;
+            --canvas-height-desktop: 80vh;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            touch-action: manipulation;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .controls-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            order: 2;
+        }
+        .control-group {
+            margin-bottom: 12px;
+        }
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: filter 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:active {
+            filter: brightness(0.9);
+        }
+        button.red {
+            background: var(--danger-color);
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        canvas {
+            width: 100%;
+            height: var(--canvas-height-mobile);
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            background: white;
+            touch-action: none;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                flex-direction: row;
+                height: 90vh;
+            }
+            .controls-panel {
+                min-width: 280px;
+                order: 1;
+            }
+            canvas {
+                height: var(--canvas-height-desktop);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <canvas id="canvas"></canvas>
+        <div class="controls-panel">
+            <div class="control-group">
+                <button onclick="toggleChargeType()">电荷类型：<span id="chargeType">正</span></button>
+            </div>
+            <div class="control-group">
+                <h3 style="margin: 0 0 12px 0;">坐标添加</h3>
+                <input type="number" id="inputX" placeholder="X 坐标" min="0">
+                <input type="number" id="inputY" placeholder="Y 坐标" min="0" style="margin: 8px 0;">
+                <button onclick="addChargeByInput()">添加电荷</button>
+            </div>
+            <div class="control-group">
+                <div class="button-group">
+                    <button onclick="undo()" class="red">撤销</button>
+                    <button onclick="clearAll()" class="red">清空</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let charges = [];
+        let history = [];
+        let currentType = 'positive';
+        const STEP = 0.1;
+        const MAX_ITERATIONS = 10000;
+        let canvasWidth = 0;
+        let canvasHeight = 0;
+        const K = 15000;
+
+        // 动态调整画布尺寸
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvasWidth = rect.width;
+            canvasHeight = rect.height;
+            
+            // 更新输入框范围
+            document.getElementById('inputX').max = Math.floor(canvasWidth);
+            document.getElementById('inputX').placeholder = `X 坐标 (0-${Math.floor(canvasWidth)})`;
+            document.getElementById('inputY').max = Math.floor(canvasHeight);
+            document.getElementById('inputY').placeholder = `Y 坐标 (0-${Math.floor(canvasHeight)})`;
+
+            // 设置高DPI画布
+            canvas.width = canvasWidth * devicePixelRatio;
+            canvas.height = canvasHeight * devicePixelRatio;
+            ctx.scale(devicePixelRatio, devicePixelRatio);
+            drawScene();
+        }
+
+        // 绘制坐标轴
+        function drawAxes() {
+            ctx.save();
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#666';
+
+            // 绘制X轴
+            ctx.beginPath();
+            ctx.moveTo(0, canvasHeight);
+            ctx.lineTo(canvasWidth, canvasHeight);
+            ctx.stroke();
+
+            // 绘制Y轴
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, canvasHeight);
+            ctx.stroke();
+
+            // X轴刻度
+            ctx.textAlign = 'center';
+            for(let x = 50; x < canvasWidth; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, canvasHeight - 5);
+                ctx.lineTo(x, canvasHeight);
+                ctx.stroke();
+                ctx.fillText(Math.round(x), x, canvasHeight - 8);
+            }
+
+            // Y轴刻度（反向坐标系）
+            ctx.textAlign = 'left';
+            for(let y = canvasHeight - 50; y > 0; y -= 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(5, y);
+                ctx.stroke();
+                ctx.fillText(canvasHeight - y, 8, y + 3);
+            }
+            ctx.restore();
+        }
+
+        // 电场计算
+        function calculateField(x, y) {
+            let Ex = 0, Ey = 0;
+            for (const charge of charges) {
+                const dx = x - charge.x;
+                const dy = y - charge.y;
+                const rSq = dx*dx + dy*dy;
+                if (rSq < 0.01) continue;
+
+                const sign = charge.type === 'positive' ? 1 : -1;
+                const E = K * sign / rSq;
+                Ex += E * dx / Math.sqrt(rSq);
+                Ey += E * dy / Math.sqrt(rSq);
+            }
+            return {x: Ex, y: Ey};
+        }
+
+        // 绘制电场线
+        function drawFieldLine(startX, startY) {
+            let x = startX, y = startY;
+            let iterations = 0;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+
+            while (iterations++ < MAX_ITERATIONS) {
+                const field = calculateField(x, y);
+                const mag = Math.sqrt(field.x**2 + field.y**2);
+                
+                if (mag < 0.1 || x < 0 || x > canvasWidth || y < 0 || y > canvasHeight) break;
+
+                // 检测是否接近负电荷
+                const hitCharge = charges.some(c => {
+                    if (c.type === 'negative') {
+                        const dx = x - c.x;
+                        const dy = y - c.y;
+                        return (dx*dx + dy*dy) < 40;
+                    }
+                    return false;
+                });
+                if (hitCharge) break;
+
+                const dirX = field.x / mag;
+                const dirY = field.y / mag;
+                x += dirX * STEP;
+                y += dirY * STEP;
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        // 绘制场景
+        function drawScene() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            drawAxes();
+
+            // 绘制电场线
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 1;
+            charges.forEach(charge => {
+                if (charge.type === 'positive') {
+                    for (let angle = 0; angle < 360; angle += 30) {
+                        const rad = angle * Math.PI / 180;
+                        const startX = charge.x + 10 * Math.cos(rad);
+                        const startY = charge.y + 10 * Math.sin(rad);
+                        drawFieldLine(startX, startY);
+                    }
+                }
+            });
+
+            // 绘制电荷
+            charges.forEach(charge => {
+                ctx.beginPath();
+                ctx.arc(charge.x, charge.y, 12, 0, Math.PI*2);
+                ctx.fillStyle = charge.type === 'positive' ? '#ff4444' : '#4444ff';
+                ctx.fill();
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(charge.type === 'positive' ? '+' : '-', charge.x, charge.y);
+            });
+        }
+
+        // 事件处理
+        function getCanvasPosition(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (clientX - rect.left) * (canvasWidth / rect.width),
+                y: (clientY - rect.top) * (canvasHeight / rect.height)
+            };
+        }
+
+        // 保存状态
+        function saveState() {
+            history.push(JSON.parse(JSON.stringify(charges)));
+        }
+
+        // 撤销操作
+        function undo() {
+            if (history.length > 0) {
+                charges = history.pop();
+                drawScene();
+            }
+        }
+
+        // 清空全部
+        function clearAll() {
+            saveState();
+            charges = [];
+            drawScene();
+        }
+
+        // 切换电荷类型
+        function toggleChargeType() {
+            currentType = currentType === 'positive' ? 'negative' : 'positive';
+            document.getElementById('chargeType').textContent = 
+                currentType === 'positive' ? '正' : '负';
+        }
+
+        // 输入添加电荷
+        function addChargeByInput() {
+            const x = parseFloat(document.getElementById('inputX').value);
+            const y = parseFloat(document.getElementById('inputY').value);
+            
+            if (isNaN(x) || x < 0 || x > canvasWidth || 
+                isNaN(y) || y < 0 || y > canvasHeight) {
+                alert(`有效范围：X(0-${Math.floor(canvasWidth)} Y(0-${Math.floor(canvasHeight)})`);
+                return;
+            }
+
+            saveState();
+            charges.push({x, y, type: currentType});
+            drawScene();
+        }
+
+        // 事件监听
+        canvas.addEventListener('click', function(e) {
+            const pos = getCanvasPosition(e.clientX, e.clientY);
+            saveState();
+            charges.push({x: pos.x, y: pos.y, type: currentType});
+            drawScene();
+        });
+
+        let isTouching = false;
+        canvas.addEventListener('touchstart', handleTouch);
+        canvas.addEventListener('touchmove', handleTouch);
+        canvas.addEventListener('touchend', () => isTouching = false);
+
+        function handleTouch(e) {
+            e.preventDefault();
+            if(e.touches.length > 1) return;
+            
+            const touch = e.touches[0];
+            const pos = getCanvasPosition(touch.clientX, touch.clientY);
+            
+            if(!isTouching) {
+                saveState();
+                charges.push({x: pos.x, y: pos.y, type: currentType});
+                drawScene();
+                isTouching = true;
+            }
+        }
+
+        // 初始化
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        saveState();
+    </script>
+</body>
+</html>
