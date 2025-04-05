@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="handheldfriendly" content="true">
+    <meta name="mobileoptimized" content="width">
+    <title>二维波干涉模拟器</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --background: #f8f9fa;
+            --text-color: #2c3e50;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 基础样式 */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: var(--background);
+            color: var(--text-color);
+            transition: background 0.3s;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 15px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin: 15px 0;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+        }
+        
+        /* 模拟区域布局 */
+        .simulation-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        /* 画布容器 */
+        .canvas-container {
+            flex: 2;
+            min-width: 300px;
+            position: relative;
+            background: #000;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+        
+        canvas {
+            width: 100% !important;
+            height: 300px !important;
+            touch-action: none;
+            vertical-align: bottom;
+        }
+        
+        /* 加载动画 */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.2em;
+            pointer-events: none;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        /* 控制面板 */
+        .controls {
+            flex: 1;
+            min-width: 280px;
+            background: white;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+        
+        /* 控件组样式 */
+        .control-group {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: rgba(248, 249, 250, 0.5);
+            border-radius: var(--border-radius);
+        }
+        
+        .control-group h3 {
+            margin: 0 0 10px;
+            font-size: 1.1em;
+            color: var(--primary-color);
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+        }
+        
+        /* 表单元素 */
+        label {
+            display: block;
+            margin: 8px 0;
+            font-size: 0.95em;
+            color: #555;
+            cursor: pointer;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            -webkit-appearance: none;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        
+        input[type="range"]:active::-webkit-slider-thumb {
+            transform: scale(1.2);
+        }
+        
+        .value-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            color: #666;
+            margin-top: -5px;
+        }
+        
+        /* 按钮样式 */
+        button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 6px;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1 1 45%;
+            margin: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:active {
+            transform: scale(0.96);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        /* 信息面板 */
+        .info-section {
+            background: #e8f4fc;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        
+        /* 移动端适配 */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+                border-radius: 8px;
+            }
+        
+            canvas {
+                height: 250px !important;
+            }
+        
+            button {
+                font-size: 0.9em;
+                padding: 10px 15px;
+            }
+        
+            .control-group {
+                padding: 10px;
+            }
+        
+            .value-display {
+                font-size: 0.8em;
+            }
+        
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+        
+        /* 复选框样式优化 */
+        input[type="checkbox"] {
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+            vertical-align: middle;
+            accent-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>二维空间波干涉模拟器</h1>
+        
+        <div class="simulation-area">
+            <div class="canvas-container">
+                <canvas id="interferenceCanvas"></canvas>
+                <div class="loading" id="loading">初始化中...</div>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <h3>波源设置</h3>
+                    <label for="wavelength">波长 (像素)</label>
+                    <input type="range" id="wavelength" min="10" max="100" value="40">
+                    <div class="value-display">
+                        <span>10</span>
+                        <span id="wavelengthValue">40</span>
+                        <span>100</span>
+                    </div>
+                    
+                    <label for="sourceDistance">波源间距 (像素)</label>
+                    <input type="range" id="sourceDistance" min="50" max="300" value="150">
+                    <div class="value-display">
+                        <span>50</span>
+                        <span id="sourceDistanceValue">150</span>
+                        <span>300</span>
+                    </div>
+                    
+                    <label for="phaseDifference">相位差 (度)</label>
+                    <input type="range" id="phaseDifference" min="0" max="360" value="0">
+                    <div class="value-display">
+                        <span>0°</span>
+                        <span id="phaseDifferenceValue">0°</span>
+                        <span>360°</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>视图模式</h3>
+                    <label>
+                        <input type="checkbox" id="showSources" checked> 显示波源
+                    </label>
+                    <label>
+                        <input type="checkbox" id="showInterference" checked> 干涉图案
+                    </label>
+                    <label>
+                        <input type="checkbox" id="showWavefronts"> 波前显示
+                    </label>
+                    <label>
+                        <input type="checkbox" id="showIntensity"> 强度分布
+                    </label>
+                </div>
+                
+                <!--
+                <div class="control-group">
+                    <h3>视图模式</h3>
+                    <div class="button-group">
+                        <button id="viewWater">水波</button>
+                        <button id="viewLight">光波</button>
+                        <button id="viewBoth">组合</button>
+                    </div>
+                </div>
+                -->
+                <button id="resetBtn">重置参数</button>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2>关于二维波干涉</h2>
+            <p>通过调整波源参数观察干涉现象，不同视图模式对应不同物理场景。支持触控操作，长按波源可拖动位置。</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('interferenceCanvas');
+            const ctx = canvas.getContext('2d');
+            let isDragging = false;
+            let currentSource = null;
+        
+            // 控件元素
+            const wavelengthSlider = document.getElementById('wavelength');
+            const sourceDistanceSlider = document.getElementById('sourceDistance');
+            const phaseDifferenceSlider = document.getElementById('phaseDifference');
+            const wavelengthValue = document.getElementById('wavelengthValue');
+            const sourceDistanceValue = document.getElementById('sourceDistanceValue');
+            const phaseDifferenceValue = document.getElementById('phaseDifferenceValue');
+            const showSourcesCheckbox = document.getElementById('showSources');
+            const showInterferenceCheckbox = document.getElementById('showInterference');
+            const showWavefrontsCheckbox = document.getElementById('showWavefronts');
+            const showIntensityCheckbox = document.getElementById('showIntensity');
+            const resetBtn = document.getElementById('resetBtn');
+        
+            // 初始化参数
+            let params = {
+                wavelength: 40,
+                sourceDistance: 150,
+                phaseDifference: 0,
+                showSources: true,
+                showInterference: true,
+                showWavefronts: false,
+                showIntensity: false,
+                viewMode: 'water',
+                time: 0
+            };
+        
+            // 波源位置
+            let source1 = { x: 0, y: 0 };
+            let source2 = { x: 0, y: 0 };
+        
+            // 画布尺寸调整
+            function resizeCanvas() {
+                const container = canvas.parentElement;
+                canvas.width = container.clientWidth;
+                canvas.height = 300;
+                updateSourcePositions();
+            }
+        
+            // 更新参数显示
+            function updateDisplayValues() {
+                wavelengthValue.textContent = params.wavelength;
+                sourceDistanceValue.textContent = Math.round(params.sourceDistance);
+                phaseDifferenceValue.textContent = params.phaseDifference + '°';
+            }
+        
+            // 更新波源位置
+            function updateSourcePositions() {
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                source1.x = centerX - params.sourceDistance / 2;
+                source1.y = centerY;
+                source2.x = centerX + params.sourceDistance / 2;
+                source2.y = centerY;
+            }
+        
+            // 触摸事件处理
+            function handleTouch(e) {
+                if(!params.showSources) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                
+                if(!isDragging) {
+                    const d1 = Math.hypot(x - source1.x, y - source1.y);
+                    const d2 = Math.hypot(x - source2.x, y - source2.y);
+                    currentSource = d1 < d2 ? source1 : source2;
+                    isDragging = true;
+                }
+                
+                if(currentSource) {
+                    currentSource.x = Math.max(30, Math.min(canvas.width-30, x));
+                    currentSource.y = Math.max(30, Math.min(canvas.height-30, y));
+                    params.sourceDistance = Math.hypot(source1.x - source2.x, source1.y - source2.y);
+                    sourceDistanceSlider.value = params.sourceDistance;
+                    sourceDistanceValue.textContent = Math.round(params.sourceDistance);
+                }
+                e.preventDefault();
+            }
+        
+            // 事件监听
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', () => isDragging = false);
+        
+            wavelengthSlider.addEventListener('input', () => {
+                params.wavelength = parseInt(wavelengthSlider.value);
+                updateDisplayValues();
+            });
+        
+            sourceDistanceSlider.addEventListener('input', () => {
+                params.sourceDistance = parseInt(sourceDistanceSlider.value);
+                updateDisplayValues();
+                updateSourcePositions();
+            });
+        
+            phaseDifferenceSlider.addEventListener('input', () => {
+                params.phaseDifference = parseInt(phaseDifferenceSlider.value);
+                updateDisplayValues();
+            });
+        
+            showSourcesCheckbox.addEventListener('change', () => params.showSources = showSourcesCheckbox.checked);
+            showInterferenceCheckbox.addEventListener('change', () => params.showInterference = showInterferenceCheckbox.checked);
+            showWavefrontsCheckbox.addEventListener('change', () => params.showWavefronts = showWavefrontsCheckbox.checked);
+            showIntensityCheckbox.addEventListener('change', () => params.showIntensity = showIntensityCheckbox.checked);
+        
+            /*document.getElementById('viewWater').addEventListener('click', () => {
+                params.viewMode = 'water';
+                showIntensityCheckbox.checked = params.showIntensity = false;
+                showWavefrontsCheckbox.checked = params.showWavefronts = false;
+            });
+        
+            document.getElementById('viewLight').addEventListener('click', () => {
+                params.viewMode = 'light';
+                showIntensityCheckbox.checked = params.showIntensity = true;
+                showWavefrontsCheckbox.checked = params.showWavefronts = false;
+            });
+        
+            document.getElementById('viewBoth').addEventListener('click', () => {
+                params.viewMode = 'both';
+                showIntensityCheckbox.checked = params.showIntensity = true;
+                showWavefrontsCheckbox.checked = params.showWavefronts = true;
+            });
+            */
+            resetBtn.addEventListener('click', () => {
+                wavelengthSlider.value = 40;
+                sourceDistanceSlider.value = 150;
+                phaseDifferenceSlider.value = 0;
+                showSourcesCheckbox.checked = true;
+                showInterferenceCheckbox.checked = true;
+                showWavefrontsCheckbox.checked = false;
+                showIntensityCheckbox.checked = false;
+                
+                Object.assign(params, {
+                    wavelength: 40,
+                    sourceDistance: 150,
+                    phaseDifference: 0,
+                    showSources: true,
+                    showInterference: true,
+                    showWavefronts: false,
+                    showIntensity: false,
+                    viewMode: 'water'
+                });
+                
+                updateDisplayValues();
+                updateSourcePositions();
+            });
+        
+            // 振幅计算
+            function calculateAmplitude(x, y, time) {
+                const dx1 = x - source1.x;
+                const dy1 = y - source1.y;
+                const distance1 = Math.sqrt(dx1*dx1 + dy1*dy1);
+                
+                const dx2 = x - source2.x;
+                const dy2 = y - source2.y;
+                const distance2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+                
+                const phaseDiff = (params.phaseDifference * Math.PI) / 180;
+                const amplitude1 = Math.sin(2 * Math.PI * distance1 / params.wavelength - time * 0.1);
+                const amplitude2 = Math.sin(2 * Math.PI * distance2 / params.wavelength - time * 0.1 + phaseDiff);
+                
+                return {
+                    amplitude: amplitude1 + amplitude2,
+                    intensity: (amplitude1 + amplitude2) ** 2
+                };
+            }
+        
+            // 绘图函数
+            function drawSources() {
+                if (!params.showSources) return;
+                ctx.fillStyle = '#ff4757';
+                ctx.beginPath();
+                ctx.arc(source1.x, source1.y, 6, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#2ed573';
+                ctx.beginPath();
+                ctx.arc(source2.x, source2.y, 6, 0, Math.PI*2);
+                ctx.fill();
+            }
+        
+            function drawWavefronts(time) {
+                if (!params.showWavefronts) return;
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                const waveStep = params.wavelength;
+                for(let i=1; i<=4; i++) {
+                    const radius = i*waveStep + (time*2)%waveStep;
+                    ctx.beginPath();
+                    ctx.arc(source1.x, source1.y, radius, 0, Math.PI*2);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(source2.x, source2.y, radius, 0, Math.PI*2);
+                    ctx.stroke();
+                }
+            }
+        
+            function drawInterference(time) {
+                if (!params.showInterference) return;
+                const imageData = ctx.createImageData(canvas.width, canvas.height);
+                const phaseDiffRad = (params.phaseDifference * Math.PI) / 180;
+                const k = 2 * Math.PI / params.wavelength;
+        
+                for(let y=0; y<canvas.height; y++) {
+                    for(let x=0; x<canvas.width; x++) {
+                        const idx = (y*canvas.width + x)*4;
+                        const dx1 = x - source1.x;
+                        const dy1 = y - source1.y;
+                        const dx2 = x - source2.x;
+                        const dy2 = y - source2.y;
+                        const phase1 = k*Math.sqrt(dx1*dx1 + dy1*dy1) - time*0.1;
+                        const phase2 = k*Math.sqrt(dx2*dx2 + dy2*dy2) - time*0.1 + phaseDiffRad;
+                        const amp = Math.sin(phase1) + Math.sin(phase2);
+                        const intensity = amp*amp;
+        
+                        if(params.viewMode === 'water') {
+                            imageData.data.set([0, amp*64+128, 255, 255], idx);
+                        } else if(params.viewMode === 'light') {
+                            const val = intensity*255;
+                            imageData.data.set([val, val, val, 255], idx);
+                        } else {
+                            const waterVal = amp*64+128;
+                            const lightVal = intensity*255;
+                            imageData.data.set([
+                                Math.min(waterVal*0.3 + lightVal, 255),
+                                Math.min(waterVal*0.8, 255),
+                                Math.min(255 - lightVal*0.5, 255),
+                                255
+                            ], idx);
+                        }
+        
+                        if(params.showIntensity) {
+                            const val = intensity*255;
+                            imageData.data.set([val, val, val, 255], idx);
+                        }
+                    }
+                }
+                ctx.putImageData(imageData, 0, 0);
+            }
+        
+            // 优化动画循环
+            let lastRender = 0;
+            const renderInterval = 1000/30; // 30fps
+            function animate(timestamp) {
+                if (timestamp - lastRender >= renderInterval) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    params.time++;
+                    drawInterference(params.time);
+                    drawWavefronts(params.time);
+                    drawSources();
+                    lastRender = timestamp;
+                }
+                requestAnimationFrame(animate);
+            }
+        
+            // 初始化
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            document.getElementById('loading').style.display = 'none';
+            updateDisplayValues();
+            updateSourcePositions();
+            animate(0);
+        });
+    </script>
+</body>
+</html>
